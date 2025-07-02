@@ -6,10 +6,9 @@ import json
 from typing import Optional, Dict
 
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(override=True)
 
 from openai import OpenAI
-
 st.set_page_config(page_title="IA Engenheira de Prompts", layout="centered")
 st.markdown("""
 <style>
@@ -24,6 +23,7 @@ div[data-testid="stCodeBlock"] pre {
 
 client = None
 try:
+    print()
     client = OpenAI()
     if not client.api_key:
         st.error("Chave da API OpenAI não encontrada. Certifique-se de que a variável de ambiente OPENAI_API_KEY está configurada.")
@@ -144,7 +144,7 @@ if st.button("✨ Gerar Prompt Otimizado pela IA", use_container_width=True):
                 topicos_conhecidos_descricoes = [f"'{data['descricao']}'" for data in BASE_DIRETRIZES_EE.values()]
                 erro_msg = (f"Não foi possível identificar um tópico principal válido a partir da sua descrição. "
                             f"Por favor, inclua palavras-chave mais específicas relacionadas a um dos seguintes domínios: "
-                            f"{', '.join(topicos_conhecidos_descricoes)}.")
+                            f"{' ou '.join(topicos_conhecidos_descricoes)}.")
                 st.error(erro_msg)
             else:
                 st.info(f"**Tópico identificado:** {BASE_DIRETRIZES_EE[topico_identificado]['descricao']}")
