@@ -1,25 +1,11 @@
 import openai
 import streamlit as st
 import re
-import os
-import json
-from typing import Optional, Dict
+from typing import Optional
 
 from dotenv import load_dotenv
 load_dotenv(override=True)
-
 from openai import OpenAI
-st.set_page_config(page_title="IA Engenheira de Prompts", layout="centered")
-st.markdown("""
-<style>
-/* Força a quebra de linha no st.code para ter o melhor dos dois mundos: botão de copiar e legibilidade */
-div[data-testid="stCodeBlock"] pre {
-    white-space: pre-wrap !important;
-    overflow-wrap: break-word !important;
-    word-wrap: break-word !important;
-}
-</style>
-""", unsafe_allow_html=True)
 
 client = None
 try:
@@ -69,9 +55,6 @@ BASE_DIRETRIZES_EE = carregar_base_diretrizes()
 
 
 def identificar_topico_por_keyword(descricao_usuario: str) -> Optional[str]:
-    """
-    Identifica o tópico de forma restritiva, baseado em keywords pré-definidas.
-    """
     descricao_lower = descricao_usuario.lower()
     for topico_key, topico_data in BASE_DIRETRIZES_EE.items():
         for keyword in topico_data.get("keywords_identificacao", []):
@@ -80,11 +63,8 @@ def identificar_topico_por_keyword(descricao_usuario: str) -> Optional[str]:
     return None
 
 def gerar_prompt_com_ia(topico_identificado: str, descricao_usuario: str, modelo_ia: str = "gpt-4o") -> str:
-    """
-    Usa a IA para gerar um prompt otimizado com base no objetivo do usuário e em diretrizes.
-    """
     if not client:
-        return "ERRO: Cliente OpenAI não inicializado."
+        return "Erro: Cliente OpenAI não inicializado."
 
     info_topico = BASE_DIRETRIZES_EE[topico_identificado]
     diretrizes = info_topico["prompt_guidelines"]
@@ -98,12 +78,13 @@ def gerar_prompt_com_ia(topico_identificado: str, descricao_usuario: str, modelo
     diretrizes_str = "\n".join([f"- {d}" for d in diretrizes])
     user_message = (
         f"Preciso que você crie um prompt otimizado. Analise meu objetivo e as diretrizes para o tópico e gere o melhor prompt possível.\n\n"
-        f"**Meu Objetivo:**\n\"{descricao_usuario}\"\n\n"
-        f"**Tópico Identificado:**\n{info_topico['descricao']}\n\n"
-        f"**Diretrizes para a Criação do Prompt:**\n{diretrizes_str}\n\n"
+        f"Meu Objetivo:\n\"{descricao_usuario}\"\n\n"
+        f"Tópico Identificado:\n{info_topico['descricao']}\n\n"
+        f"Diretrizes para a Criação do Prompt:\n{diretrizes_str}\n\n"
         "O prompt gerado deve ser auto-contido e pronto para ser copiado e colado. "
         "Ele deve preencher os detalhes mencionados no meu objetivo diretamente no corpo do prompt que você criar. "
         "Por exemplo, se meu objetivo menciona 'reduzir perdas em uma rede de 13.8kV', o prompt que você criar deve incluir explicitamente 'reduzir perdas' e 'rede de 13.8kV' nos locais apropriados."
+        # "Não use formatação Markdown na sua resposta"
     )
 
     try:
@@ -120,9 +101,9 @@ def gerar_prompt_com_ia(topico_identificado: str, descricao_usuario: str, modelo
         return prompt_gerado
 
     except openai.APIError as e:
-        return f"ERRO: A consulta à API da OpenAI para gerar o prompt falhou: {e}"
+        return f"Erro: A consulta à API da OpenAI para gerar o prompt falhou: {e}"
     except Exception as e:
-        return f"ERRO: Um erro inesperado ocorreu ao gerar o prompt: {e}"
+        return f"Erro: Algo inesperado ocorreu ao gerar o prompt: {e}"
 
 
 descricao_objetivo_usuario = st.text_area(
@@ -141,7 +122,7 @@ if st.button("✨ Gerar Prompt Otimizado pela IA", use_container_width=True):
             topico_identificado = identificar_topico_por_keyword(descricao_objetivo_usuario)
             
             if not topico_identificado:
-                topicos_conhecidos_descricoes = [f"'{data['descricao']}'" for data in BASE_DIRETRIZES_EE.values()]
+                topicos_conhecidos_descricoes = [f"{data['descricao']}" for data in BASE_DIRETRIZES_EE.values()]
                 erro_msg = (f"Não foi possível identificar um tópico principal válido a partir da sua descrição. "
                             f"Por favor, inclua palavras-chave mais específicas relacionadas a um dos seguintes domínios: "
                             f"{' ou '.join(topicos_conhecidos_descricoes)}.")
@@ -151,7 +132,7 @@ if st.button("✨ Gerar Prompt Otimizado pela IA", use_container_width=True):
                 
                 prompt_otimizado = gerar_prompt_com_ia(topico_identificado, descricao_objetivo_usuario)
                 
-                if prompt_otimizado.startswith("ERRO:"):
+                if prompt_otimizado.startswith("Erro:"):
                     st.error(prompt_otimizado)
                 else:
                     st.success("Prompt otimizado gerado pela IA com sucesso!")
